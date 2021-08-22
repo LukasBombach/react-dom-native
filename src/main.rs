@@ -1,16 +1,20 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::RwLock;
 use std::thread;
 
 use winit::event::Event;
+use winit::event::StartCause;
 use winit::event::WindowEvent;
 use winit::event_loop::ControlFlow;
 use winit::event_loop::EventLoop;
 use winit::window::Window;
 use winit::window::WindowBuilder;
+use winit::window::WindowId;
 
 // use deno_core::error::bad_resource_id;
 use deno_core::error::AnyError;
@@ -28,21 +32,17 @@ use deno_runtime::tokio_util::create_basic_runtime;
 use deno_runtime::worker::MainWorker;
 use deno_runtime::worker::WorkerOptions;
 
-struct EventLoopResource(pub RefCell<EventLoop<()>>);
+struct WindowsResource {
+    windows: Arc<RwLock<HashMap<WindowId, Window>>>,
+}
 
-impl Resource for EventLoopResource {
+impl Resource for WindowsResource {
     fn name(&self) -> Cow<str> {
-        "eventLoop".into()
+        "windows".into()
     }
 }
 
 struct WindowResource(pub Window);
-
-impl WindowResource {
-    pub fn new(event_loop: &EventLoop<()>) -> Result<Self, AnyError> {
-        Ok(Self(winit::window::Window::new(event_loop)?))
-    }
-}
 
 impl Resource for WindowResource {
     fn name(&self) -> Cow<str> {
@@ -50,7 +50,7 @@ impl Resource for WindowResource {
     }
 }
 
-fn create_window(
+/* fn create_window(
     state: &mut OpState,
     rid: ResourceId,
     _zero_copy: Option<ZeroCopyBuf>,
@@ -59,7 +59,7 @@ fn create_window(
     let event_loop = event_loop.0.borrow_mut();
     Ok(state.resource_table.add(WindowResource::new(&event_loop)?))
 }
-
+ */
 fn get_error_class_name(e: &AnyError) -> &'static str {
     deno_runtime::errors::get_error_class_name(e).unwrap_or("Error")
 }
@@ -67,11 +67,11 @@ fn get_error_class_name(e: &AnyError) -> &'static str {
 fn main() {
     // WINIT
     let event_loop = EventLoop::new();
-    let window = WindowBuilder::new()
-        .with_title("A fantastic window!")
-        .with_inner_size(winit::dpi::LogicalSize::new(640.0, 480.0))
-        .build(&event_loop)
-        .unwrap();
+
+    let windows_hash: HashMap<WindowId, Window> = HashMap::new();
+    let windows_arc = Arc::new(RwLock::new(windows_hash));
+    let windows_main = Arc::clone(&windows_arc);
+    let windows_js = Arc::clone(&windows_arc);
 
     // DENO
     thread::spawn(move || {
@@ -111,16 +111,18 @@ fn main() {
         let mut worker = MainWorker::from_options(main_module.clone(), permissions, &options);
         let tokio_runtime = create_basic_runtime();
 
-        // worker
-        //     .js_runtime
-        //     .op_state()
-        //     .borrow_mut()
-        //     .resource_table
-        //     .add(EventLoopResource(RefCell::new(EventLoop::new())));
-
         worker
             .js_runtime
-            .register_op("create_window", op_sync(create_window));
+            .op_state()
+            .borrow_mut()
+            .resource_table
+            .add(WindowsResource {
+                windows: windows_js,
+            });
+
+        // worker
+        //     .js_runtime
+        //     .register_op("create_window", op_sync(create_window));
 
         worker.js_runtime.sync_ops_cache();
 
@@ -132,14 +134,14 @@ fn main() {
     });
 
     // WINIT
-    event_loop.run(move |event, _, control_flow| {
+    event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Wait;
 
         match event {
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                window_id,
-            } if window_id == window.id() => *control_flow = ControlFlow::Exit,
+            Event::NewEvents(StartCause::Init) => {
+                let window = Window::new(&event_loop).unwrap();
+                windows_main.write().unwrap().insert(window.id(), window);
+            }
             _ => (),
         }
     });
