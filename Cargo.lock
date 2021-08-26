@@ -2404,6 +2404,7 @@ version = "0.1.0"
 dependencies = [
  "deno_core",
  "deno_runtime",
+ "serde",
  "winit",
 ]
 
@@ -3577,6 +3578,7 @@ dependencies = [
  "percent-encoding",
  "raw-window-handle",
  "scopeguard",
+ "serde",
  "smithay-client-toolkit",
  "wayland-client",
  "winapi",

@@ -6,15 +6,19 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 
+use winit::dpi::LogicalPosition;
+use winit::dpi::LogicalSize;
 use winit::event::Event;
 use winit::event::StartCause;
 use winit::event_loop::ControlFlow;
 use winit::event_loop::EventLoop;
 use winit::event_loop::EventLoopProxy;
 use winit::window::Window;
+use winit::window::WindowBuilder;
 
 use deno_core::error::AnyError;
 use deno_core::op_sync;
+use deno_core::serde::Deserialize;
 use deno_core::FsModuleLoader;
 use deno_core::OpState;
 use deno_core::Resource;
@@ -28,7 +32,7 @@ use deno_runtime::worker::MainWorker;
 use deno_runtime::worker::WorkerOptions;
 
 enum CustomEvent {
-    RequestCreateWindow(u32),
+    RequestCreateWindow(CreateWindowArgs),
     RequestRemoveWindow(u32),
 }
 
@@ -40,12 +44,33 @@ impl Resource for WindowResource {
     }
 }
 
-fn create_window(state: &mut OpState, _: (), _: ()) -> Result<u32, AnyError> {
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateWindowArgs {
+    rid: ResourceId,
+    title: String,
+    size: LogicalSize<f32>,
+    position: LogicalPosition<f32>,
+}
+
+impl Default for CreateWindowArgs {
+    fn default() -> CreateWindowArgs {
+        CreateWindowArgs {
+            rid: 0,
+            title: "".to_string(),
+            size: LogicalSize::new(640.0, 480.0),
+            position: LogicalPosition::new(300.0, 300.0),
+        }
+    }
+}
+
+fn create_window(state: &mut OpState, args: CreateWindowArgs, _: ()) -> Result<u32, AnyError> {
     let rid = state.resource_table.add(WindowResource {});
+    let args = CreateWindowArgs { rid, ..args };
 
     state
         .borrow::<EventLoopProxy<CustomEvent>>()
-        .send_event(CustomEvent::RequestCreateWindow(rid))
+        .send_event(CustomEvent::RequestCreateWindow(args))
         .ok();
 
     Ok(rid)
@@ -143,9 +168,14 @@ fn main() {
             Event::NewEvents(StartCause::Init) => {
                 js_thread.thread().unpark();
             }
-            Event::UserEvent(CustomEvent::RequestCreateWindow(rid)) => {
-                let window = Window::new(&event_loop).unwrap();
-                windows.insert(rid, window);
+            Event::UserEvent(CustomEvent::RequestCreateWindow(args)) => {
+                let window = WindowBuilder::new()
+                    .with_title(args.title)
+                    .with_inner_size(args.size)
+                    .with_position(args.position)
+                    .build(&event_loop)
+                    .unwrap();
+                windows.insert(args.rid, window);
             }
             Event::UserEvent(CustomEvent::RequestRemoveWindow(rid)) => {
                 windows.remove(&rid);
