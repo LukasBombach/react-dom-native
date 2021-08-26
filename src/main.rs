@@ -18,6 +18,7 @@ use deno_core::op_sync;
 use deno_core::FsModuleLoader;
 use deno_core::OpState;
 use deno_core::Resource;
+use deno_core::ResourceId;
 
 use deno_runtime::deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_runtime::deno_web::BlobStore;
@@ -28,15 +29,10 @@ use deno_runtime::worker::WorkerOptions;
 
 enum CustomEvent {
     RequestCreateWindow(u32),
+    RequestRemoveWindow(u32),
 }
 
 struct WindowResource {}
-
-impl WindowResource {
-    pub fn new() -> Self {
-        WindowResource {}
-    }
-}
 
 impl Resource for WindowResource {
     fn name(&self) -> Cow<str> {
@@ -45,7 +41,7 @@ impl Resource for WindowResource {
 }
 
 fn create_window(state: &mut OpState, _: (), _: ()) -> Result<u32, AnyError> {
-    let rid = state.resource_table.add(WindowResource::new());
+    let rid = state.resource_table.add(WindowResource {});
 
     state
         .borrow::<EventLoopProxy<CustomEvent>>()
@@ -53,6 +49,17 @@ fn create_window(state: &mut OpState, _: (), _: ()) -> Result<u32, AnyError> {
         .ok();
 
     Ok(rid)
+}
+
+fn remove_window(state: &mut OpState, rid: ResourceId, _: ()) -> Result<(), AnyError> {
+    state.resource_table.close(rid).ok();
+
+    state
+        .borrow::<EventLoopProxy<CustomEvent>>()
+        .send_event(CustomEvent::RequestRemoveWindow(rid))
+        .ok();
+
+    Ok(())
 }
 
 fn get_error_class_name(e: &AnyError) -> &'static str {
@@ -113,6 +120,10 @@ fn main() {
             .js_runtime
             .register_op("create_window", op_sync(create_window));
 
+        worker
+            .js_runtime
+            .register_op("remove_window", op_sync(remove_window));
+
         worker.js_runtime.sync_ops_cache();
 
         thread::park();
@@ -135,6 +146,9 @@ fn main() {
             Event::UserEvent(CustomEvent::RequestCreateWindow(rid)) => {
                 let window = Window::new(&event_loop).unwrap();
                 windows.insert(rid, window);
+            }
+            Event::UserEvent(CustomEvent::RequestRemoveWindow(rid)) => {
+                windows.remove(&rid);
             }
             _ => (),
         }
