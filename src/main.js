@@ -1,4 +1,4 @@
 console.log("hello javascript");
-Deno.core.opSync("create_window");
-Deno.core.opSync("create_window");
-Deno.core.opSync("create_window");
+console.log("window 1", Deno.core.opSync("create_window"));
+console.log("window 2", Deno.core.opSync("create_window"));
+console.log("window 3", Deno.core.opSync("create_window"));

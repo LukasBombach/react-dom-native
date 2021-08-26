@@ -28,17 +28,19 @@ use deno_runtime::tokio_util::create_basic_runtime;
 use deno_runtime::worker::MainWorker;
 use deno_runtime::worker::WorkerOptions;
 
-/* struct WindowsResource {
-    windows: Arc<RwLock<HashMap<WindowId, Window>>>,
-} */
+enum CustomEvent {
+    RequestCreateWindow(WindowResource),
+}
 
-/* impl Resource for WindowsResource {
-    fn name(&self) -> Cow<str> {
-        "windows".into()
+struct WindowResource {
+    pub window: Option<Window>,
+}
+
+impl WindowResource {
+    pub fn new() -> Self {
+        WindowResource { window: None }
     }
-} */
-
-struct WindowResource(pub Window);
+}
 
 impl Resource for WindowResource {
     fn name(&self) -> Cow<str> {
@@ -46,17 +48,15 @@ impl Resource for WindowResource {
     }
 }
 
-#[derive(Debug)]
-enum CustomEvent {
-    RequestCreateWindow,
-}
+fn create_window(state: &mut OpState, _: (), _: ()) -> Result<u32, AnyError> {
+    let window_resource = WindowResource::new();
 
-fn create_window(state: &mut OpState, _: (), _: ()) -> Result<(), AnyError> {
     state
         .borrow::<EventLoopProxy<CustomEvent>>()
-        .send_event(CustomEvent::RequestCreateWindow)
+        .send_event(CustomEvent::RequestCreateWindow(window_resource))
         .ok();
-    Ok(())
+
+    Ok(state.resource_table.add(window_resource))
 }
 
 fn get_error_class_name(e: &AnyError) -> &'static str {
@@ -140,7 +140,7 @@ fn main() {
             Event::NewEvents(StartCause::Init) => {
                 js_thread.thread().unpark();
             }
-            Event::UserEvent(CustomEvent::RequestCreateWindow) => {
+            Event::UserEvent(CustomEvent::RequestCreateWindow(_)) => {
                 let window = Window::new(&event_loop).unwrap();
                 windows_main.write().unwrap().insert(window.id(), window);
             }
