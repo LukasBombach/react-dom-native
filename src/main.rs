@@ -29,7 +29,7 @@ use deno_runtime::worker::MainWorker;
 use deno_runtime::worker::WorkerOptions;
 
 enum CustomEvent {
-    RequestCreateWindow(WindowResource),
+    RequestCreateWindow(u32),
 }
 
 struct WindowResource {
@@ -50,13 +50,14 @@ impl Resource for WindowResource {
 
 fn create_window(state: &mut OpState, _: (), _: ()) -> Result<u32, AnyError> {
     let window_resource = WindowResource::new();
+    let rid = state.resource_table.add(WindowResource::new());
 
-    // state
-    //     .borrow::<EventLoopProxy<CustomEvent>>()
-    //     .send_event(CustomEvent::RequestCreateWindow(window_resource))
-    //     .ok();
+    state
+        .borrow::<EventLoopProxy<CustomEvent>>()
+        .send_event(CustomEvent::RequestCreateWindow(rid))
+        .ok();
 
-    Ok(state.resource_table.add(window_resource))
+    Ok(rid)
 }
 
 fn get_error_class_name(e: &AnyError) -> &'static str {
@@ -140,7 +141,7 @@ fn main() {
             Event::NewEvents(StartCause::Init) => {
                 js_thread.thread().unpark();
             }
-            Event::UserEvent(CustomEvent::RequestCreateWindow(_)) => {
+            Event::UserEvent(CustomEvent::RequestCreateWindow(rid)) => {
                 let window = Window::new(&event_loop).unwrap();
                 windows_main.write().unwrap().insert(window.id(), window);
             }
