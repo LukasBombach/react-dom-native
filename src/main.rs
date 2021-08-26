@@ -51,10 +51,10 @@ impl Resource for WindowResource {
 fn create_window(state: &mut OpState, _: (), _: ()) -> Result<u32, AnyError> {
     let window_resource = WindowResource::new();
 
-    state
-        .borrow::<EventLoopProxy<CustomEvent>>()
-        .send_event(CustomEvent::RequestCreateWindow(window_resource))
-        .ok();
+    // state
+    //     .borrow::<EventLoopProxy<CustomEvent>>()
+    //     .send_event(CustomEvent::RequestCreateWindow(window_resource))
+    //     .ok();
 
     Ok(state.resource_table.add(window_resource))
 }
