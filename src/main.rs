@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::cell::RefCell;
+
 use std::collections::HashMap;
 use std::path::Path;
 use std::rc::Rc;
@@ -9,21 +9,17 @@ use std::thread;
 
 use winit::event::Event;
 use winit::event::StartCause;
-use winit::event::WindowEvent;
 use winit::event_loop::ControlFlow;
 use winit::event_loop::EventLoop;
+use winit::event_loop::EventLoopProxy;
 use winit::window::Window;
-use winit::window::WindowBuilder;
 use winit::window::WindowId;
 
-// use deno_core::error::bad_resource_id;
 use deno_core::error::AnyError;
 use deno_core::op_sync;
 use deno_core::FsModuleLoader;
 use deno_core::OpState;
 use deno_core::Resource;
-use deno_core::ResourceId;
-use deno_core::ZeroCopyBuf;
 
 use deno_runtime::deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_runtime::deno_web::BlobStore;
@@ -32,15 +28,15 @@ use deno_runtime::tokio_util::create_basic_runtime;
 use deno_runtime::worker::MainWorker;
 use deno_runtime::worker::WorkerOptions;
 
-struct WindowsResource {
+/* struct WindowsResource {
     windows: Arc<RwLock<HashMap<WindowId, Window>>>,
-}
+} */
 
-impl Resource for WindowsResource {
+/* impl Resource for WindowsResource {
     fn name(&self) -> Cow<str> {
         "windows".into()
     }
-}
+} */
 
 struct WindowResource(pub Window);
 
@@ -50,31 +46,35 @@ impl Resource for WindowResource {
     }
 }
 
-/* fn create_window(
-    state: &mut OpState,
-    rid: ResourceId,
-    _zero_copy: Option<ZeroCopyBuf>,
-) -> Result<ResourceId, AnyError> {
-    let event_loop = state.resource_table.get::<EventLoopResource>(rid).unwrap();
-    let event_loop = event_loop.0.borrow_mut();
-    Ok(state.resource_table.add(WindowResource::new(&event_loop)?))
+#[derive(Debug)]
+enum CustomEvent {
+    RequestCreateWindow,
 }
- */
+
+fn create_window(state: &mut OpState, _: (), _: ()) -> Result<(), AnyError> {
+    state
+        .borrow::<EventLoopProxy<CustomEvent>>()
+        .send_event(CustomEvent::RequestCreateWindow)
+        .ok();
+    Ok(())
+}
+
 fn get_error_class_name(e: &AnyError) -> &'static str {
     deno_runtime::errors::get_error_class_name(e).unwrap_or("Error")
 }
 
 fn main() {
     // WINIT
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::<CustomEvent>::with_user_event();
+    let event_loop_proxy = event_loop.create_proxy();
 
     let windows_hash: HashMap<WindowId, Window> = HashMap::new();
     let windows_arc = Arc::new(RwLock::new(windows_hash));
     let windows_main = Arc::clone(&windows_arc);
-    let windows_js = Arc::clone(&windows_arc);
+    // let windows_js = Arc::clone(&windows_arc);
 
     // DENO
-    thread::spawn(move || {
+    let js_thread = thread::spawn(move || {
         let module_loader = Rc::new(FsModuleLoader);
         let create_web_worker_cb = Arc::new(|_| {
             todo!("Web workers are not supported in the example");
@@ -115,16 +115,15 @@ fn main() {
             .js_runtime
             .op_state()
             .borrow_mut()
-            .resource_table
-            .add(WindowsResource {
-                windows: windows_js,
-            });
+            .put::<EventLoopProxy<CustomEvent>>(event_loop_proxy);
 
-        // worker
-        //     .js_runtime
-        //     .register_op("create_window", op_sync(create_window));
+        worker
+            .js_runtime
+            .register_op("create_window", op_sync(create_window));
 
         worker.js_runtime.sync_ops_cache();
+
+        thread::park();
 
         tokio_runtime.block_on(async {
             worker.bootstrap(&options);
@@ -139,6 +138,9 @@ fn main() {
 
         match event {
             Event::NewEvents(StartCause::Init) => {
+                js_thread.thread().unpark();
+            }
+            Event::UserEvent(CustomEvent::RequestCreateWindow) => {
                 let window = Window::new(&event_loop).unwrap();
                 windows_main.write().unwrap().insert(window.id(), window);
             }
