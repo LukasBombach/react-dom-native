@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::RwLock;
 use std::thread;
 
 use winit::event::Event;
@@ -13,7 +12,6 @@ use winit::event_loop::ControlFlow;
 use winit::event_loop::EventLoop;
 use winit::event_loop::EventLoopProxy;
 use winit::window::Window;
-use winit::window::WindowId;
 
 use deno_core::error::AnyError;
 use deno_core::op_sync;
@@ -32,13 +30,11 @@ enum CustomEvent {
     RequestCreateWindow(u32),
 }
 
-struct WindowResource {
-    pub window: Option<Window>,
-}
+struct WindowResource {}
 
 impl WindowResource {
     pub fn new() -> Self {
-        WindowResource { window: None }
+        WindowResource {}
     }
 }
 
@@ -49,7 +45,6 @@ impl Resource for WindowResource {
 }
 
 fn create_window(state: &mut OpState, _: (), _: ()) -> Result<u32, AnyError> {
-    let window_resource = WindowResource::new();
     let rid = state.resource_table.add(WindowResource::new());
 
     state
@@ -68,11 +63,7 @@ fn main() {
     // WINIT
     let event_loop = EventLoop::<CustomEvent>::with_user_event();
     let event_loop_proxy = event_loop.create_proxy();
-
-    let windows_hash: HashMap<WindowId, Window> = HashMap::new();
-    let windows_arc = Arc::new(RwLock::new(windows_hash));
-    let windows_main = Arc::clone(&windows_arc);
-    // let windows_js = Arc::clone(&windows_arc);
+    let mut windows: HashMap<u32, Window> = HashMap::new();
 
     // DENO
     let js_thread = thread::spawn(move || {
@@ -143,7 +134,7 @@ fn main() {
             }
             Event::UserEvent(CustomEvent::RequestCreateWindow(rid)) => {
                 let window = Window::new(&event_loop).unwrap();
-                windows_main.write().unwrap().insert(window.id(), window);
+                windows.insert(rid, window);
             }
             _ => (),
         }
