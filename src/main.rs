@@ -24,8 +24,8 @@ fn main() {
         let mut app_handler = AppHandler::new(event_loop_proxy, recv);
         app_handler.create_window();
 
-        let mut js_runtime = js::runtime::Runtime::new("app/index.js");
-        js_runtime.run();
+        let mut js_runtime = js::Runtime::new();
+        js_runtime.run("app/index.js");
     });
 
     event_loop.run(move |event, event_loop, control_flow| {

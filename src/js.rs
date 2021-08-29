@@ -18,14 +18,11 @@ fn get_error_class_name(e: &AnyError) -> &'static str {
 }
 
 pub struct Runtime {
-  main_worker: MainWorker,
-  main_module: ModuleSpecifier,
-  tokio_runtime: tokio::runtime::Runtime,
   options: WorkerOptions,
 }
 
 impl Runtime {
-  pub fn new(js_path: &str) -> Self {
+  pub fn new() -> Self {
     let create_web_worker_cb = Arc::new(|_| {
       todo!("Web workers are not supported in the example");
     });
@@ -57,9 +54,13 @@ impl Runtime {
       cpu_count: 1,
     };
 
+    Self { options }
+  }
+
+  pub fn run(&mut self, js_path: &str) {
     let main_module = deno_core::resolve_path(js_path).unwrap();
-    let main_worker =
-      MainWorker::from_options(main_module.clone(), Permissions::allow_all(), &options);
+    let mut main_worker =
+      MainWorker::from_options(main_module.clone(), Permissions::allow_all(), &self.options);
 
     let tokio_runtime = Builder::new_current_thread()
       .enable_io()
@@ -68,19 +69,10 @@ impl Runtime {
       .build()
       .unwrap();
 
-    Self {
-      main_worker,
-      main_module,
-      tokio_runtime,
-      options,
-    }
-  }
-
-  pub fn run(&mut self) {
-    self.tokio_runtime.block_on(async {
-      self.main_worker.bootstrap(&self.options);
-      (self.main_worker.execute_module(&self.main_module).await).unwrap();
-      (self.main_worker.run_event_loop(false).await).unwrap();
+    tokio_runtime.block_on(async {
+      main_worker.bootstrap(&self.options);
+      (main_worker.execute_module(&main_module).await).unwrap();
+      (main_worker.run_event_loop(false).await).unwrap();
     });
   }
 }

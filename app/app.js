@@ -3,7 +3,8 @@ function run() {
 }
 
 function openWindow() {
-  console.log("openWindow");
+  // todo opAsync
+  return Deno.core.opSync("open_window");
 }
 
 function closeWindow() {
