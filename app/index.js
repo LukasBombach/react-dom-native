@@ -1,3 +1,3 @@
-console.log("app js booting");
+import ReactNativeSkia from "./app.js";
 
-setTimeout(() => console.log("app js done"), 2000);
+ReactNativeSkia.run();
