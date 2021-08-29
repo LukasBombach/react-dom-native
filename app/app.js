@@ -1,5 +1,5 @@
 function run() {
-  console.log("running the app;");
+  console.log("running the app");
 }
 
 const ReactNativeSkia = { run };
