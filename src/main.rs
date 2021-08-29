@@ -1,5 +1,5 @@
 mod app_handler;
-mod js_runtime;
+mod js;
 
 use app_handler::AppEvent;
 use app_handler::AppHandler;
@@ -24,7 +24,8 @@ fn main() {
         let mut app_handler = AppHandler::new(event_loop_proxy, recv);
         app_handler.create_window();
 
-        js_runtime::run("app/index.js");
+        let mut js_runtime = js::runtime::Runtime::new("app/index.js");
+        js_runtime.run();
     });
 
     event_loop.run(move |event, event_loop, control_flow| {

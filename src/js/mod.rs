@@ -11,6 +11,8 @@ use deno_runtime::tokio_util::create_basic_runtime;
 use deno_runtime::worker::MainWorker;
 use deno_runtime::worker::WorkerOptions;
 
+pub mod runtime;
+
 fn get_error_class_name(e: &AnyError) -> &'static str {
   deno_runtime::errors::get_error_class_name(e).unwrap_or("Error")
 }

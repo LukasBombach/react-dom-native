@@ -9,4 +9,5 @@ edition = "2018"
 deno_core = "0.97.0"
 deno_runtime = "0.23.0"
 serde = { version = "1.0.128", features = ["derive"] }
+tokio = "1.10.1"
 winit = { version =  "0.25.0", features = ["serde"] }
