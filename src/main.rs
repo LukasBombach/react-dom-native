@@ -52,7 +52,7 @@ fn main() {
         let mut app_handler = AppHandler::new(event_loop_proxy, recv);
         app_handler.create_window();
 
-        js_runtime::run("src/main.js");
+        js_runtime::run("app/index.js");
     });
 
     event_loop.run(move |event, event_loop, control_flow| {
