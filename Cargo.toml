@@ -3,11 +3,10 @@ name = "react-native-skia"
 version = "0.1.0"
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-deno_core = "0.97.0"
-deno_runtime = "0.23.0"
-serde = { version = "1.0.128", features = ["derive"] }
+deno_core = "0.98.0"
+deno_runtime = "0.24.0"
+serde = { version = "1.0.130", features = ["derive"] }
 tokio = "1.10.1"
-winit = { version =  "0.25.0", features = ["serde"] }
+winit = { version = "0.25.0", features = ["serde"] }
