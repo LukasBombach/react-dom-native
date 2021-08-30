@@ -1,3 +1,8 @@
+mod app_handler;
+mod window;
+
+use app_handler::AppHandler;
+
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -57,10 +62,22 @@ impl Runtime {
     Self { options }
   }
 
-  pub fn run(&mut self, js_path: &str) {
+  pub fn run(&mut self, js_path: &str, app_handler: AppHandler) {
     let main_module = deno_core::resolve_path(js_path).unwrap();
     let mut main_worker =
       MainWorker::from_options(main_module.clone(), Permissions::allow_all(), &self.options);
+
+    worker
+      .js_runtime
+      .op_state()
+      .borrow_mut()
+      .put::<AppHandler>(app_handler);
+
+    worker
+      .js_runtime
+      .register_op("open_window", op_sync(window::open_window));
+
+    worker.js_runtime.sync_ops_cache();
 
     let tokio_runtime = Builder::new_current_thread()
       .enable_io()
