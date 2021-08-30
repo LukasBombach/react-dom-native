@@ -1,16 +1,12 @@
-function run() {
+export function run() {
   console.log("running the app");
 }
 
-function openWindow() {
+export function openWindow() {
   // todo opAsync
   return Deno.core.opSync("open_window");
 }
 
-function closeWindow() {
+export function closeWindow() {
   console.log("closeWindow");
 }
-
-const ReactNativeSkia = { run };
-
-export default ReactNativeSkia;

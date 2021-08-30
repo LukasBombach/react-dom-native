@@ -1,5 +1,5 @@
-mod app_handler;
-mod window;
+use crate::app_handler;
+use crate::window;
 
 use app_handler::AppHandler;
 
@@ -7,6 +7,8 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use deno_core::error::AnyError;
+use deno_core::op_async;
+use deno_core::op_sync;
 use deno_core::FsModuleLoader;
 use deno_core::ModuleSpecifier;
 
@@ -67,17 +69,17 @@ impl Runtime {
     let mut main_worker =
       MainWorker::from_options(main_module.clone(), Permissions::allow_all(), &self.options);
 
-    worker
+    main_worker
       .js_runtime
       .op_state()
       .borrow_mut()
       .put::<AppHandler>(app_handler);
 
-    worker
+    main_worker
       .js_runtime
       .register_op("open_window", op_sync(window::open_window));
 
-    worker.js_runtime.sync_ops_cache();
+    main_worker.js_runtime.sync_ops_cache();
 
     let tokio_runtime = Builder::new_current_thread()
       .enable_io()

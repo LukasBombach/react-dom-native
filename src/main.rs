@@ -1,5 +1,6 @@
-mod app_handler;
-mod js;
+pub mod app_handler;
+pub mod js;
+pub mod window;
 
 use app_handler::AppEvent;
 use app_handler::AppHandler;
@@ -21,11 +22,9 @@ fn main() {
     let (send, recv): (Sender<Window>, Receiver<Window>) = channel();
 
     thread::spawn(move || {
-        let mut app_handler = AppHandler::new(event_loop_proxy, recv);
-        app_handler.create_window();
-
+        let app_handler = AppHandler::new(event_loop_proxy, recv);
         let mut js_runtime = js::Runtime::new();
-        js_runtime.run("app/index.js");
+        js_runtime.run("app/index.js", app_handler);
     });
 
     event_loop.run(move |event, event_loop, control_flow| {
