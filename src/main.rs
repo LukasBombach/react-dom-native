@@ -6,23 +6,20 @@ use app_handler::AppEvent;
 use app_handler::AppHandler;
 
 use std::sync::mpsc::channel;
-use std::sync::mpsc::Receiver;
-use std::sync::mpsc::Sender;
 use std::thread;
 
 use winit::event::Event;
 use winit::event_loop::ControlFlow;
 use winit::event_loop::EventLoop;
-use winit::window::Window;
 use winit::window::WindowBuilder;
 
 fn main() {
     let event_loop = EventLoop::<AppEvent>::with_user_event();
     let event_loop_proxy = event_loop.create_proxy();
-    let (send, recv): (Sender<Window>, Receiver<Window>) = channel();
+    let (send, recv) = channel();
+    let app_handler = AppHandler::new(event_loop_proxy, recv);
 
-    thread::spawn(move || {
-        let app_handler = AppHandler::new(event_loop_proxy, recv);
+    thread::spawn(|| {
         let mut js_runtime = js::Runtime::new();
         js_runtime.run("app/index.js", app_handler);
     });
