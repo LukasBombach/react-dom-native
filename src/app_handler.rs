@@ -1,5 +1,5 @@
-use winit::event_loop::EventLoopProxy;
-use winit::window::Window;
+use glutin::event_loop::EventLoopProxy;
+use glutin::window::Window;
 
 use std::sync::mpsc::Receiver;
 

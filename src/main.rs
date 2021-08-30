@@ -8,10 +8,10 @@ use app_handler::AppHandler;
 use std::sync::mpsc::channel;
 use std::thread;
 
-use winit::event::Event;
-use winit::event_loop::ControlFlow;
-use winit::event_loop::EventLoop;
-use winit::window::WindowBuilder;
+use glutin::event::Event;
+use glutin::event_loop::ControlFlow;
+use glutin::event_loop::EventLoop;
+use glutin::window::WindowBuilder;
 
 fn main() {
     let event_loop = EventLoop::<AppEvent>::with_user_event();

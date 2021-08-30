@@ -9,7 +9,7 @@ use deno_core::OpState;
 use deno_core::Resource;
 use deno_core::ResourceId;
 
-use winit::window::Window;
+use glutin::window::Window;
 
 #[allow(dead_code)]
 struct WindowResource {

@@ -1,8 +1,5 @@
 import { openWindow, closeWindow } from "./app.js";
 
-console.log("window 1", openWindow());
-console.log("window 2", openWindow());
-
 let windowRid = openWindow();
 console.log("opened", windowRid);
 
