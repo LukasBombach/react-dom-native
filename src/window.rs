@@ -7,6 +7,7 @@ use std::borrow::Cow;
 use deno_core::error::AnyError;
 use deno_core::OpState;
 use deno_core::Resource;
+use deno_core::ResourceId;
 
 use winit::window::Window;
 
@@ -28,4 +29,9 @@ pub fn open_window(state: &mut OpState, _args: (), _: ()) -> Result<u32, AnyErro
   let window_resouce = WindowResource { window };
 
   Ok(state.resource_table.add(window_resouce))
+}
+
+pub fn close_window(state: &mut OpState, rid: ResourceId, _: ()) -> Result<(), AnyError> {
+  state.resource_table.close(rid).ok();
+  Ok(())
 }

@@ -76,6 +76,9 @@ impl Runtime {
     main_worker
       .js_runtime
       .register_op("open_window", op_sync(window::open_window));
+    main_worker
+      .js_runtime
+      .register_op("close_window", op_sync(window::close_window));
 
     main_worker.js_runtime.sync_ops_cache();
 
