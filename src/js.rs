@@ -7,10 +7,8 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use deno_core::error::AnyError;
-use deno_core::op_async;
 use deno_core::op_sync;
 use deno_core::FsModuleLoader;
-use deno_core::ModuleSpecifier;
 
 use deno_runtime::deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_runtime::deno_web::BlobStore;

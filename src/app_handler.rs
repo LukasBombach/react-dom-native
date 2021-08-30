@@ -1,8 +1,6 @@
 use winit::event_loop::EventLoopProxy;
 use winit::window::Window;
-use winit::window::WindowId;
 
-use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 
 pub enum AppEvent {
