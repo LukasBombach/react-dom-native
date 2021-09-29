@@ -1,5 +1,5 @@
 use gl::types::*;
-use glutin::event::{Event, KeyboardInput, VirtualKeyCode, WindowEvent};
+use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
 use glutin::GlProfile;
@@ -15,7 +15,6 @@ type WindowedContext = glutin::ContextWrapper<glutin::PossiblyCurrent, glutin::w
 fn main() {
     let el = EventLoop::new();
     let wb = WindowBuilder::new().with_title("rust-skia-gl-window");
-
     let cb = glutin::ContextBuilder::new()
         .with_depth_buffer(0)
         .with_stencil_buffer(8)
@@ -24,14 +23,7 @@ fn main() {
         .with_gl_profile(GlProfile::Core);
 
     let windowed_context = cb.build_windowed(wb, &el).unwrap();
-
     let windowed_context = unsafe { windowed_context.make_current().unwrap() };
-    let pixel_format = windowed_context.get_pixel_format();
-
-    println!(
-        "Pixel format of the window's GL context: {:?}",
-        pixel_format
-    );
 
     gl::load_with(|s| windowed_context.get_proc_address(s));
 
@@ -81,15 +73,6 @@ fn main() {
     }
 
     let surface = create_surface(&windowed_context, &fb_info, &mut gr_context);
-    // let sf = windowed_context.window().scale_factor() as f32;
-    // surface.canvas().scale((sf, sf));
-
-    let mut frame = 0;
-
-    // Guarantee the drop order inside the FnMut closure. `WindowedContext` _must_ be dropped after
-    // `DirectContext`.
-    //
-    // https://github.com/rust-skia/rust-skia/issues/476
     struct Env {
         surface: Surface,
         gr_context: skia_safe::gpu::DirectContext,
@@ -115,31 +98,12 @@ fn main() {
                     env.windowed_context.resize(physical_size)
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                WindowEvent::KeyboardInput {
-                    input:
-                        KeyboardInput {
-                            virtual_keycode,
-                            modifiers,
-                            ..
-                        },
-                    ..
-                } => {
-                    if modifiers.logo() {
-                        if let Some(VirtualKeyCode::Q) = virtual_keycode {
-                            *control_flow = ControlFlow::Exit;
-                        }
-                    }
-                    frame += 1;
-                    env.windowed_context.window().request_redraw();
-                }
                 _ => (),
             },
             Event::RedrawRequested(_) => {
-                {
-                    let canvas = env.surface.canvas();
-                    canvas.clear(Color::WHITE);
-                    renderer::render_frame(frame % 360, 12, 60, canvas);
-                }
+                let canvas = env.surface.canvas();
+                canvas.clear(Color::WHITE);
+                renderer::render_frame(0, 12, 60, canvas);
                 env.surface.canvas().flush();
                 env.windowed_context.swap_buffers().unwrap();
             }
