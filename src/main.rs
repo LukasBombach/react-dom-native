@@ -12,6 +12,39 @@ mod renderer;
 
 type WindowedContext = glutin::ContextWrapper<glutin::PossiblyCurrent, glutin::window::Window>;
 
+struct Env {
+    surface: Surface,
+    gr_context: skia_safe::gpu::DirectContext,
+    windowed_context: WindowedContext,
+}
+
+fn create_surface(
+    windowed_context: &WindowedContext,
+    fb_info: &FramebufferInfo,
+    gr_context: &mut skia_safe::gpu::DirectContext,
+) -> skia_safe::Surface {
+    let pixel_format = windowed_context.get_pixel_format();
+    let size = windowed_context.window().inner_size();
+    let backend_render_target = BackendRenderTarget::new_gl(
+        (
+            size.width.try_into().unwrap(),
+            size.height.try_into().unwrap(),
+        ),
+        pixel_format.multisampling.map(|s| s.try_into().unwrap()),
+        pixel_format.stencil_bits.try_into().unwrap(),
+        *fb_info,
+    );
+    Surface::from_backend_render_target(
+        gr_context,
+        &backend_render_target,
+        SurfaceOrigin::BottomLeft,
+        ColorType::RGBA8888,
+        None,
+        None,
+    )
+    .unwrap()
+}
+
 fn main() {
     let el = EventLoop::new();
     let wb = WindowBuilder::new().with_title("rust-skia-gl-window");
@@ -24,10 +57,9 @@ fn main() {
 
     let windowed_context = cb.build_windowed(wb, &el).unwrap();
     let windowed_context = unsafe { windowed_context.make_current().unwrap() };
+    let mut gr_context = skia_safe::gpu::DirectContext::new_gl(None, None).unwrap();
 
     gl::load_with(|s| windowed_context.get_proc_address(s));
-
-    let mut gr_context = skia_safe::gpu::DirectContext::new_gl(None, None).unwrap();
 
     let fb_info = {
         let mut fboid: GLint = 0;
@@ -39,45 +71,7 @@ fn main() {
         }
     };
 
-    windowed_context
-        .window()
-        .set_inner_size(glutin::dpi::Size::new(glutin::dpi::LogicalSize::new(
-            1024.0, 1024.0,
-        )));
-
-    fn create_surface(
-        windowed_context: &WindowedContext,
-        fb_info: &FramebufferInfo,
-        gr_context: &mut skia_safe::gpu::DirectContext,
-    ) -> skia_safe::Surface {
-        let pixel_format = windowed_context.get_pixel_format();
-        let size = windowed_context.window().inner_size();
-        let backend_render_target = BackendRenderTarget::new_gl(
-            (
-                size.width.try_into().unwrap(),
-                size.height.try_into().unwrap(),
-            ),
-            pixel_format.multisampling.map(|s| s.try_into().unwrap()),
-            pixel_format.stencil_bits.try_into().unwrap(),
-            *fb_info,
-        );
-        Surface::from_backend_render_target(
-            gr_context,
-            &backend_render_target,
-            SurfaceOrigin::BottomLeft,
-            ColorType::RGBA8888,
-            None,
-            None,
-        )
-        .unwrap()
-    }
-
     let surface = create_surface(&windowed_context, &fb_info, &mut gr_context);
-    struct Env {
-        surface: Surface,
-        gr_context: skia_safe::gpu::DirectContext,
-        windowed_context: WindowedContext,
-    }
 
     let mut env = Env {
         surface,
