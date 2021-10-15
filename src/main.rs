@@ -1,22 +1,19 @@
+mod renderer;
+mod support;
+
 use gl::types::*;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
+use glutin::ContextBuilder;
 use glutin::GlProfile;
 use skia_safe::gpu::gl::FramebufferInfo;
 use skia_safe::gpu::{BackendRenderTarget, SurfaceOrigin};
 use skia_safe::{Color, ColorType, Surface};
 use std::convert::TryInto;
-
-mod renderer;
+use support::{ContextCurrentWrapper, ContextTracker, ContextWrapper};
 
 type WindowedContext = glutin::ContextWrapper<glutin::PossiblyCurrent, glutin::window::Window>;
-
-struct Env {
-    surface: Surface,
-    gr_context: skia_safe::gpu::DirectContext,
-    windowed_context: WindowedContext,
-}
 
 fn create_surface(
     windowed_context: &WindowedContext,
@@ -45,63 +42,95 @@ fn create_surface(
     .unwrap()
 }
 
+struct Win {
+    context_id: usize,
+    surface: Surface,
+    gr_context: skia_safe::gpu::DirectContext,
+}
+
 fn main() {
     let el = EventLoop::new();
-    let wb = WindowBuilder::new().with_title("rust-skia-gl-window");
-    let cb = glutin::ContextBuilder::new()
-        .with_depth_buffer(0)
-        .with_stencil_buffer(8)
-        .with_pixel_format(24, 8)
-        .with_double_buffer(Some(true))
-        .with_gl_profile(GlProfile::Core);
+    let mut ct = ContextTracker::default();
 
-    let windowed_context = cb.build_windowed(wb, &el).unwrap();
-    let windowed_context = unsafe { windowed_context.make_current().unwrap() };
-    let mut gr_context = skia_safe::gpu::DirectContext::new_gl(None, None).unwrap();
+    let mut windows = std::collections::HashMap::new();
 
-    gl::load_with(|s| windowed_context.get_proc_address(s));
+    for index in 0..3 {
+        let title = format!("Charming Window #{}", index + 1);
+        let wb = WindowBuilder::new().with_title(title);
+        let windowed_context = ContextBuilder::new().build_windowed(wb, &el).unwrap();
+        let windowed_context = unsafe { windowed_context.make_current().unwrap() };
+        let mut gr_context = skia_safe::gpu::DirectContext::new_gl(None, None).unwrap();
+        gl::load_with(|s| windowed_context.get_proc_address(s));
+        let fb_info = {
+            let mut fboid: GLint = 0;
+            unsafe { gl::GetIntegerv(gl::FRAMEBUFFER_BINDING, &mut fboid) };
+            FramebufferInfo {
+                fboid: fboid.try_into().unwrap(),
+                format: skia_safe::gpu::gl::Format::RGBA8.into(),
+            }
+        };
+        let surface = create_surface(&windowed_context, &fb_info, &mut gr_context);
 
-    let fb_info = {
-        let mut fboid: GLint = 0;
-        unsafe { gl::GetIntegerv(gl::FRAMEBUFFER_BINDING, &mut fboid) };
+        // let gl = support::load(&windowed_context.context());
+        let window_id = windowed_context.window().id();
+        let context_id = ct.insert(ContextCurrentWrapper::PossiblyCurrent(
+            ContextWrapper::Windowed(windowed_context),
+        ));
 
-        FramebufferInfo {
-            fboid: fboid.try_into().unwrap(),
-            format: skia_safe::gpu::gl::Format::RGBA8.into(),
-        }
-    };
+        let win = Win {
+            context_id,
+            surface,
+            gr_context,
+        };
 
-    let surface = create_surface(&windowed_context, &fb_info, &mut gr_context);
-
-    let mut env = Env {
-        surface,
-        gr_context,
-        windowed_context,
-    };
+        windows.insert(window_id, win);
+    }
 
     el.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
-
-        #[allow(deprecated)]
         match event {
-            Event::LoopDestroyed => {}
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(physical_size) => {
-                    env.surface =
-                        create_surface(&env.windowed_context, &fb_info, &mut env.gr_context);
-                    env.windowed_context.resize(physical_size)
-                }
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+            Event::WindowEvent { event, window_id } => match event {
+                /* WindowEvent::Resized(physical_size) => {
+                    let windowed_context = ct.get_current(windows[&window_id].0).unwrap();
+                    let windowed_context = windowed_context.windowed();
+
+                    window.1 =
+                        create_surface(&windowed_context, &fb_info, &mut env.gr_context);
+                    windowed_context.resize(physical_size);
+                } */
+                /* WindowEvent::CloseRequested => {
+                    if let Some((cid, _, _)) = windows.remove(&window_id) {
+                        ct.remove(cid);
+                    }
+                } */
                 _ => (),
             },
-            Event::RedrawRequested(_) => {
-                let canvas = env.surface.canvas();
-                canvas.clear(Color::WHITE);
-                renderer::render_frame(0, 12, 60, canvas);
-                env.surface.canvas().flush();
-                env.windowed_context.swap_buffers().unwrap();
+            Event::RedrawRequested(window_id) => {
+                /* let window = &windows[&window_id];
+
+                let mut color = [1.0, 0.5, 0.7, 1.0];
+                color.swap(0, window.2 % 3);
+
+                let windowed_context = ct.get_current(window.0).unwrap();
+
+                window.1.draw_frame(color);
+                windowed_context.windowed().swap_buffers().unwrap(); */
+                if let Some(win) = windows.get_mut(&window_id) {
+                    let windowed_context = ct.get_current(win.context_id).unwrap();
+
+                    let canvas = win.surface.canvas();
+                    canvas.clear(Color::WHITE);
+                    renderer::render_frame(0, 12, 60, canvas);
+                    win.surface.canvas().flush();
+                    windowed_context.windowed().swap_buffers().unwrap();
+                }
             }
             _ => (),
+        }
+
+        if windows.is_empty() {
+            *control_flow = ControlFlow::Exit
+        } else {
+            *control_flow = ControlFlow::Wait
         }
     });
 }
