@@ -2,7 +2,7 @@ mod renderer;
 mod support;
 
 use gl::types::*;
-use glutin::event::{Event, WindowEvent};
+use glutin::event::{Event, StartCause, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::{WindowBuilder, WindowId};
 use glutin::ContextBuilder;
@@ -11,6 +11,7 @@ use skia_safe::gpu::{BackendRenderTarget, SurfaceOrigin};
 use skia_safe::{Color, ColorType, Surface};
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::{thread, time};
 use support::{ContextCurrentWrapper, ContextTracker, ContextWrapper};
 
 type WindowedContext = glutin::ContextWrapper<glutin::PossiblyCurrent, glutin::window::Window>;
@@ -42,6 +43,12 @@ fn create_surface(
     .unwrap()
 }
 
+#[derive(Debug, Clone, Copy)]
+enum AppEvent {
+    NewWindowRequested,
+    QuitAppRequested,
+}
+
 struct Win {
     context_id: usize,
     surface: Surface,
@@ -55,13 +62,23 @@ struct App {
 }
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new(el_proxy: glutin::event_loop::EventLoopProxy<AppEvent>) -> Self {
+        thread::spawn(move || {
+            for index in 0..3 {
+                thread::sleep(time::Duration::from_secs(1));
+                el_proxy.send_event(AppEvent::NewWindowRequested).ok();
+            }
+        });
+
         App {
             windows: HashMap::new(),
             ct: ContextTracker::default(),
         }
     }
-    pub fn create_window(&mut self, el: &EventLoop<()>) {
+
+    pub fn init(&mut self) {}
+
+    pub fn create_window(&mut self, el: &glutin::event_loop::EventLoopWindowTarget<AppEvent>) {
         let wb = WindowBuilder::new().with_title("Charming Window");
         let windowed_context = ContextBuilder::new().build_windowed(wb, el).unwrap();
         let windowed_context = unsafe { windowed_context.make_current().unwrap() };
@@ -130,29 +147,28 @@ impl App {
 }
 
 fn main() {
-    let el = EventLoop::new();
-    let mut app = App::new();
+    let el = EventLoop::<AppEvent>::with_user_event();
+    let el_proxy = el.create_proxy();
+    let mut app = App::new(el_proxy);
 
-    for index in 0..3 {
-        app.create_window(&el);
-    }
-
-    el.run(move |event, _, control_flow| {
-        #[allow(deprecated)]
-        match event {
-            Event::WindowEvent { event, window_id } => match event {
-                WindowEvent::Resized(physical_size) => {
-                    app.resize_window(window_id, physical_size);
-                }
-                WindowEvent::CloseRequested => {
-                    app.remove_window(window_id);
-                }
-                _ => (),
-            },
-            Event::RedrawRequested(window_id) => {
-                app.render(window_id);
+    el.run(move |event, el, control_flow| match event {
+        Event::NewEvents(StartCause::Init) => {
+            app.init();
+        }
+        Event::WindowEvent { event, window_id } => match event {
+            WindowEvent::Resized(physical_size) => {
+                app.resize_window(window_id, physical_size);
+            }
+            WindowEvent::CloseRequested => {
+                app.remove_window(window_id);
             }
             _ => (),
+        },
+        Event::RedrawRequested(window_id) => {
+            app.render(window_id);
         }
+        Event::UserEvent(AppEvent::NewWindowRequested) => app.create_window(el),
+        Event::UserEvent(AppEvent::QuitAppRequested) => *control_flow = ControlFlow::Exit,
+        _ => (),
     });
 }
