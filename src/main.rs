@@ -88,15 +88,10 @@ fn main() {
     }
 
     el.run(move |event, _, control_flow| {
+        #[allow(deprecated)]
         match event {
             Event::WindowEvent { event, window_id } => match event {
                 WindowEvent::Resized(physical_size) => {
-                    /* let windowed_context = ct.get_current(windows[&window_id].0).unwrap();
-                    let windowed_context = windowed_context.windowed();
-
-                    window.1 =
-                        create_surface(&windowed_context, &fb_info, &mut env.gr_context);
-                    windowed_context.resize(physical_size); */
                     if let Some(win) = windows.get_mut(&window_id) {
                         let windowed_context = ct.get_current(win.context_id).unwrap();
 
@@ -116,15 +111,6 @@ fn main() {
                 _ => (),
             },
             Event::RedrawRequested(window_id) => {
-                /* let window = &windows[&window_id];
-
-                let mut color = [1.0, 0.5, 0.7, 1.0];
-                color.swap(0, window.2 % 3);
-
-                let windowed_context = ct.get_current(window.0).unwrap();
-
-                window.1.draw_frame(color);
-                windowed_context.windowed().swap_buffers().unwrap(); */
                 if let Some(win) = windows.get_mut(&window_id) {
                     let windowed_context = ct.get_current(win.context_id).unwrap();
 
