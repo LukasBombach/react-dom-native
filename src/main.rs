@@ -71,7 +71,6 @@ fn main() {
         };
         let surface = create_surface(&windowed_context, &fb_info, &mut gr_context);
 
-        // let gl = support::load(&windowed_context.context());
         let window_id = windowed_context.window().id();
         let context_id = ct.insert(ContextCurrentWrapper::PossiblyCurrent(
             ContextWrapper::Windowed(windowed_context),
