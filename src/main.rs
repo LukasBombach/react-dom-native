@@ -6,7 +6,6 @@ use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
 use glutin::ContextBuilder;
-use glutin::GlProfile;
 use skia_safe::gpu::gl::FramebufferInfo;
 use skia_safe::gpu::{BackendRenderTarget, SurfaceOrigin};
 use skia_safe::{Color, ColorType, Surface};
@@ -46,6 +45,7 @@ struct Win {
     context_id: usize,
     surface: Surface,
     gr_context: skia_safe::gpu::DirectContext,
+    fb_info: FramebufferInfo,
 }
 
 fn main() {
@@ -81,6 +81,7 @@ fn main() {
             context_id,
             surface,
             gr_context,
+            fb_info,
         };
 
         windows.insert(window_id, win);
@@ -89,19 +90,29 @@ fn main() {
     el.run(move |event, _, control_flow| {
         match event {
             Event::WindowEvent { event, window_id } => match event {
-                /* WindowEvent::Resized(physical_size) => {
-                    let windowed_context = ct.get_current(windows[&window_id].0).unwrap();
+                WindowEvent::Resized(physical_size) => {
+                    /* let windowed_context = ct.get_current(windows[&window_id].0).unwrap();
                     let windowed_context = windowed_context.windowed();
 
                     window.1 =
                         create_surface(&windowed_context, &fb_info, &mut env.gr_context);
-                    windowed_context.resize(physical_size);
-                } */
-                /* WindowEvent::CloseRequested => {
-                    if let Some((cid, _, _)) = windows.remove(&window_id) {
-                        ct.remove(cid);
+                    windowed_context.resize(physical_size); */
+                    if let Some(win) = windows.get_mut(&window_id) {
+                        let windowed_context = ct.get_current(win.context_id).unwrap();
+
+                        win.surface = create_surface(
+                            windowed_context.windowed(),
+                            &win.fb_info,
+                            &mut win.gr_context,
+                        );
+                        windowed_context.windowed().resize(physical_size);
                     }
-                } */
+                }
+                WindowEvent::CloseRequested => {
+                    if let Some(win) = windows.remove(&window_id) {
+                        ct.remove(win.context_id);
+                    }
+                }
                 _ => (),
             },
             Event::RedrawRequested(window_id) => {
