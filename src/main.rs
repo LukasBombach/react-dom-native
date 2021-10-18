@@ -1,3 +1,4 @@
+mod deno;
 mod renderer;
 mod support;
 
@@ -11,6 +12,7 @@ use skia_safe::gpu::{BackendRenderTarget, SurfaceOrigin};
 use skia_safe::{Color, ColorType, Surface};
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::path::Path;
 use std::{thread, time};
 use support::{ContextCurrentWrapper, ContextTracker, ContextWrapper};
 
@@ -64,11 +66,15 @@ struct App {
 impl App {
     pub fn new(el_proxy: glutin::event_loop::EventLoopProxy<AppEvent>) -> Self {
         thread::spawn(move || {
-            for index in 0..3 {
-                thread::sleep(time::Duration::from_secs(1));
-                el_proxy.send_event(AppEvent::NewWindowRequested).ok();
-            }
+            // for index in 0..3 {
+            // thread::sleep(time::Duration::from_secs(1));
+            //     el_proxy.send_event(AppEvent::NewWindowRequested).ok();
+            // }
+            el_proxy.send_event(AppEvent::NewWindowRequested).ok();
         });
+
+        // let js_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/main.js");
+        // deno::run(&js_path.to_string_lossy()).unwrap();
 
         App {
             windows: HashMap::new(),

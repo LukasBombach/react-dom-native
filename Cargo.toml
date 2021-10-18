@@ -1,12 +1,13 @@
 [package]
-name = "react-native-skia"
+name = "react-dom-native"
 version = "0.1.0"
 edition = "2018"
+resolver = "2"
 
 [dependencies]
+deno_core = "0.103.0"
+deno_runtime = "0.29.0"
 gl = "0.14.0"
 glutin = "0.27.0"
-glutin_gles2_sys = "0.1.5"
 skia-safe = { version = "0.43.0", features = ["gl"] }
 takeable-option = "0.5.0"
-
