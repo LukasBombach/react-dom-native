@@ -3,6 +3,7 @@ use crate::renderer;
 use crate::support;
 
 use gl::types::*;
+use glutin::dpi::LogicalPosition;
 use glutin::window::WindowBuilder;
 use glutin::window::WindowId;
 use glutin::ContextBuilder;
@@ -88,7 +89,8 @@ impl App {
     &mut self,
     el: &glutin::event_loop::EventLoopWindowTarget<AppEvent>,
   ) -> WindowId {
-    let wb = WindowBuilder::new().with_title("Charming Window");
+    let pos = LogicalPosition { x: 1900, y: 900 };
+    let wb = WindowBuilder::new().with_position(pos);
     let windowed_context = ContextBuilder::new().build_windowed(wb, el).unwrap();
     let windowed_context = unsafe { windowed_context.make_current().unwrap() };
     let mut gr_context = skia_safe::gpu::DirectContext::new_gl(None, None).unwrap();
@@ -126,7 +128,7 @@ impl App {
 
       let canvas = win.surface.canvas();
       canvas.clear(Color::WHITE);
-      renderer::render_frame(0, 12, 60, canvas);
+      renderer::render_frame(canvas);
       win.surface.canvas().flush();
       windowed_context.windowed().swap_buffers().unwrap();
     }
