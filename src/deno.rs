@@ -4,7 +4,6 @@ use deno_core::op_sync;
 use deno_core::FsModuleLoader;
 use deno_core::OpState;
 use deno_core::Resource;
-use deno_core::ResourceId;
 use deno_runtime::deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_runtime::deno_web::BlobStore;
 use deno_runtime::permissions::Permissions;
@@ -110,13 +109,13 @@ impl Resource for WindowResource {
 }
 
 pub fn open_window(state: &mut OpState, _args: (), _: ()) -> Result<u32, AnyError> {
-  let event_loop_proxy = state.borrow_mut::<EventLoopProxy<AppEvent>>();
+  let event_loop_proxy = state.borrow::<EventLoopProxy<AppEvent>>();
+  let recv = state.borrow::<Receiver<WindowId>>();
 
   event_loop_proxy
     .send_event(AppEvent::NewWindowRequested)
     .ok();
 
-  let recv = state.borrow_mut::<Receiver<WindowId>>();
   let window_id = recv.recv().unwrap();
   let window_resouce = WindowResource { window_id };
 
