@@ -10,11 +10,13 @@ use glutin::event::StartCause;
 use glutin::event::WindowEvent;
 use glutin::event_loop::ControlFlow;
 use glutin::event_loop::EventLoop;
+use std::sync::mpsc::channel;
 
 fn main() {
     let el = EventLoop::<AppEvent>::with_user_event();
     let el_proxy = el.create_proxy();
-    let mut app = App::new(el_proxy);
+    let (send, recv) = channel();
+    let mut app = App::new(el_proxy, recv);
 
     el.run(move |event, el, control_flow| match event {
         Event::NewEvents(StartCause::Init) => {
@@ -32,7 +34,10 @@ fn main() {
         Event::RedrawRequested(window_id) => {
             app.render(window_id);
         }
-        Event::UserEvent(AppEvent::NewWindowRequested) => app.create_window(el),
+        Event::UserEvent(AppEvent::NewWindowRequested) => {
+            let window_id = app.create_window(el);
+            send.send(window_id).unwrap();
+        }
         Event::UserEvent(AppEvent::QuitAppRequested) => *control_flow = ControlFlow::Exit,
         _ => (),
     });

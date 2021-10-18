@@ -14,6 +14,7 @@ use skia_safe::ColorType;
 use skia_safe::Surface;
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::sync::mpsc::Receiver;
 use std::thread;
 use support::ContextCurrentWrapper;
 use support::ContextTracker;
@@ -67,9 +68,12 @@ pub struct App {
 }
 
 impl App {
-  pub fn new(el_proxy: glutin::event_loop::EventLoopProxy<AppEvent>) -> Self {
+  pub fn new(
+    el_proxy: glutin::event_loop::EventLoopProxy<AppEvent>,
+    recv: Receiver<WindowId>,
+  ) -> Self {
     thread::spawn(move || {
-      deno::run(el_proxy, "src/main.js").unwrap();
+      deno::run(el_proxy, recv, "src/main.js").unwrap();
     });
 
     App {
@@ -80,7 +84,10 @@ impl App {
 
   pub fn init(&mut self) {}
 
-  pub fn create_window(&mut self, el: &glutin::event_loop::EventLoopWindowTarget<AppEvent>) {
+  pub fn create_window(
+    &mut self,
+    el: &glutin::event_loop::EventLoopWindowTarget<AppEvent>,
+  ) -> WindowId {
     let wb = WindowBuilder::new().with_title("Charming Window");
     let windowed_context = ContextBuilder::new().build_windowed(wb, el).unwrap();
     let windowed_context = unsafe { windowed_context.make_current().unwrap() };
@@ -109,6 +116,7 @@ impl App {
     };
 
     self.windows.insert(window_id, win);
+    window_id
   }
 
   #[allow(deprecated)]

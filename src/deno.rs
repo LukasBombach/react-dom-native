@@ -3,6 +3,8 @@ use deno_core::error::AnyError;
 use deno_core::op_sync;
 use deno_core::FsModuleLoader;
 use deno_core::OpState;
+use deno_core::Resource;
+use deno_core::ResourceId;
 use deno_runtime::deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_runtime::deno_web::BlobStore;
 use deno_runtime::permissions::Permissions;
@@ -11,14 +13,21 @@ use deno_runtime::worker::MainWorker;
 use deno_runtime::worker::WorkerOptions;
 use deno_runtime::BootstrapOptions;
 use glutin::event_loop::EventLoopProxy;
+use glutin::window::WindowId;
+use std::borrow::Cow;
 use std::rc::Rc;
+use std::sync::mpsc::Receiver;
 use std::sync::Arc;
 
 fn get_error_class_name(e: &AnyError) -> &'static str {
   deno_runtime::errors::get_error_class_name(e).unwrap_or("Error")
 }
 
-pub fn run(event_loop_proxy: EventLoopProxy<AppEvent>, file_path: &str) -> Result<(), AnyError> {
+pub fn run(
+  event_loop_proxy: EventLoopProxy<AppEvent>,
+  recv: Receiver<WindowId>,
+  file_path: &str,
+) -> Result<(), AnyError> {
   let module_loader = Rc::new(FsModuleLoader);
   let create_web_worker_cb = Arc::new(|_| {
     todo!("Web workers are not supported in the example");
@@ -69,6 +78,12 @@ pub fn run(event_loop_proxy: EventLoopProxy<AppEvent>, file_path: &str) -> Resul
 
   worker
     .js_runtime
+    .op_state()
+    .borrow_mut()
+    .put::<Receiver<WindowId>>(recv);
+
+  worker
+    .js_runtime
     .register_op("open_window", op_sync(open_window));
 
   worker.js_runtime.sync_ops_cache();
@@ -83,10 +98,27 @@ pub fn run(event_loop_proxy: EventLoopProxy<AppEvent>, file_path: &str) -> Resul
   Ok(())
 }
 
-pub fn open_window(state: &mut OpState, _args: (), _: ()) -> Result<(), AnyError> {
+#[allow(dead_code)]
+struct WindowResource {
+  window_id: WindowId,
+}
+
+impl Resource for WindowResource {
+  fn name(&self) -> Cow<str> {
+    "window".into()
+  }
+}
+
+pub fn open_window(state: &mut OpState, _args: (), _: ()) -> Result<u32, AnyError> {
   let event_loop_proxy = state.borrow_mut::<EventLoopProxy<AppEvent>>();
+
   event_loop_proxy
     .send_event(AppEvent::NewWindowRequested)
     .ok();
-  Ok(())
+
+  let recv = state.borrow_mut::<Receiver<WindowId>>();
+  let window_id = recv.recv().unwrap();
+  let window_resouce = WindowResource { window_id };
+
+  Ok(state.resource_table.add(window_resouce))
 }
