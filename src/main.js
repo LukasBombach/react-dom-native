@@ -3,3 +3,5 @@ setTimeout(() => {
 }, 200);
 
 console.log("test");
+
+Deno.core.opSync("open_window");

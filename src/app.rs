@@ -69,13 +69,7 @@ pub struct App {
 impl App {
   pub fn new(el_proxy: glutin::event_loop::EventLoopProxy<AppEvent>) -> Self {
     thread::spawn(move || {
-      // for index in 0..3 {
-      // thread::sleep(time::Duration::from_secs(1));
-      //     el_proxy.send_event(AppEvent::NewWindowRequested).ok();
-      // }
-      el_proxy.send_event(AppEvent::NewWindowRequested).ok();
-
-      deno::run("src/main.js").unwrap();
+      deno::run(el_proxy, "src/main.js").unwrap();
     });
 
     App {
