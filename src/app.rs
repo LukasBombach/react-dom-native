@@ -10,7 +10,6 @@ use glutin::ContextBuilder;
 use skia_safe::gpu::gl::FramebufferInfo;
 use skia_safe::gpu::BackendRenderTarget;
 use skia_safe::gpu::SurfaceOrigin;
-use skia_safe::Color;
 use skia_safe::ColorType;
 use skia_safe::Surface;
 use std::collections::HashMap;
@@ -127,8 +126,8 @@ impl App {
       let windowed_context = self.ct.get_current(win.context_id).unwrap();
 
       let canvas = win.surface.canvas();
-      canvas.clear(Color::WHITE);
-      renderer::render_frame(canvas);
+      let size = windowed_context.windowed().window().inner_size();
+      renderer::render(canvas, size).unwrap();
       win.surface.canvas().flush();
       windowed_context.windowed().swap_buffers().unwrap();
     }
