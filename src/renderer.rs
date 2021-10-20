@@ -1,60 +1,45 @@
-#![allow(clippy::unusual_byte_groupings)]
 use glutin::dpi::PhysicalSize;
-use skia_safe::{Color, PaintStyle};
-use stretch::geometry::Size;
-use stretch::number::Number;
-use stretch::style::*;
-use stretch::Error;
+use skia_safe::canvas::Canvas;
+use skia_safe::Color;
+use skia_safe::Paint;
+use skia_safe::PaintStyle;
 
-pub fn render(
-  canvas: &mut skia_safe::canvas::Canvas,
-  size: PhysicalSize<u32>,
-) -> Result<(), Error> {
-  let mut stretch = stretch::node::Stretch::new();
+use yoga::prelude::*;
+use yoga::Align;
+use yoga::Justify;
+use yoga::Node;
+use yoga::StyleUnit::{Auto, UndefinedValue};
 
-  let child = stretch.new_node(
-    Style {
-      size: Size {
-        width: Dimension::Percent(0.5),
-        height: Dimension::Percent(0.5),
-      },
-      ..Default::default()
-    },
-    vec![],
-  )?;
+pub fn render(canvas: &mut skia_safe::canvas::Canvas, size: PhysicalSize<u32>) -> Result<(), ()> {
+  let mut body = Node::new();
+  style!(body,
+    Width(100 %),
+    Height(100 %),
+    JustifyContent(Justify::Center),
+    AlignItems(Align::Center)
+  );
 
-  let body = stretch.new_node(
-    Style {
-      size: Size {
-        width: Dimension::Percent(100.0),
-        height: Dimension::Percent(100.0),
-      },
-      justify_content: JustifyContent::Center,
-      align_items: AlignItems::Center,
-      ..Default::default()
-    },
-    vec![child],
-  )?;
+  let mut child = Node::new();
+  style!(child,
+    Width(50 %),
+    Height(50 %)
+  );
 
-  stretch.compute_layout(
-    body,
-    Size {
-      width: Number::Defined(size.width as f32),
-      height: Number::Defined(size.height as f32),
-    },
-  )?;
+  body.insert_child(&mut child, 0);
+  body.calculate_layout(size.width as f32, size.height as f32, yoga::Direction::LTR);
+  let child_layout = child.get_layout();
 
-  let child_layout = stretch.layout(child)?;
+  println!("Layout is {:#?}", child_layout);
 
-  let mut paint = skia_safe::Paint::default();
+  let mut paint = Paint::default();
   paint.set_anti_alias(true);
   paint.set_style(PaintStyle::Fill);
   paint.set_color(0xff_ffff00);
 
-  let top = child_layout.location.y / 100.0;
-  let left = child_layout.location.x / 100.0;
-  let bottom = top + (child_layout.size.height / 100.0);
-  let right = left + (child_layout.size.width / 100.0);
+  let top = child_layout.top();
+  let left = child_layout.left();
+  let bottom = top + child_layout.height();
+  let right = left + child_layout.width();
 
   let shape = skia_safe::Rect {
     top,

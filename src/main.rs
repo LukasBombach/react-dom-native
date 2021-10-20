@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate yoga;
+
 pub mod app;
 pub mod deno;
 pub mod renderer;
