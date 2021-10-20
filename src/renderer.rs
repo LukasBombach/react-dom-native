@@ -8,9 +8,8 @@ use yoga::prelude::*;
 use yoga::Align;
 use yoga::Justify;
 use yoga::Node;
-use yoga::StyleUnit::{Auto, UndefinedValue};
 
-pub fn render(canvas: &mut skia_safe::canvas::Canvas, size: PhysicalSize<u32>) -> Result<(), ()> {
+pub fn render(canvas: &mut Canvas, size: PhysicalSize<u32>) -> Result<(), ()> {
   let mut body = Node::new();
   style!(body,
     Width(100 %),
@@ -28,8 +27,6 @@ pub fn render(canvas: &mut skia_safe::canvas::Canvas, size: PhysicalSize<u32>) -
   body.insert_child(&mut child, 0);
   body.calculate_layout(size.width as f32, size.height as f32, yoga::Direction::LTR);
   let child_layout = child.get_layout();
-
-  println!("Layout is {:#?}", child_layout);
 
   let mut paint = Paint::default();
   paint.set_anti_alias(true);

@@ -1798,12 +1798,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "indextree"
-version = "4.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "990980c3d268c9b99df35e813eca2b8d1ee08606f6d2bb325edbd0b0c68f9ffe"
-
-[[package]]
 name = "inotify"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1962,12 +1956,6 @@ dependencies = [
  "cfg-if 1.0.0",
  "winapi",
 ]
-
-[[package]]
-name = "libm"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fc7aa29613bd6a620df431842069224d8bc9011086b1db4c0e0cd47fa03ec9a"
 
 [[package]]
 name = "libm"
@@ -2300,7 +2288,7 @@ dependencies = [
  "autocfg 0.1.7",
  "byteorder",
  "lazy_static",
- "libm 0.2.1",
+ "libm",
  "num-integer",
  "num-iter",
  "num-traits",
@@ -2337,7 +2325,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a64b1ec5cda2586e284722486d802acf1f7dbdc623e2bfc57e65ca1cd099290"
 dependencies = [
  "autocfg 1.0.1",
- "libm 0.2.1",
+ "libm",
 ]
 
 [[package]]
@@ -2726,9 +2714,7 @@ dependencies = [
  "deno_runtime",
  "gl",
  "glutin",
- "indextree",
  "skia-safe",
- "stretch",
  "takeable-option",
  "yoga",
 ]
@@ -3298,16 +3284,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c01a0c15da1b0b0e1494112e7af814a678fec9bd157881b49beac661e9b6f32"
 dependencies = [
  "der",
-]
-
-[[package]]
-name = "stretch"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b0dc6d20ce137f302edf90f9cd3d278866fd7fb139efca6f246161222ad6d87"
-dependencies = [
- "lazy_static",
- "libm 0.1.4",
 ]
 
 [[package]]

@@ -9,8 +9,6 @@ deno_core = "0.103.0"
 deno_runtime = "0.29.0"
 gl = "0.14.0"
 glutin = "0.27.0"
-indextree = "4.3.1"
 skia-safe = { version = "0.43.0", features = ["gl"] }
-stretch = "0.3.2"
 takeable-option = "0.5.0"
-yoga = { path = "/Users/luke/Projects/yoga-rs" }
+yoga = { path = "../yoga-rs" }
