@@ -3,6 +3,8 @@
 #![allow(non_snake_case)]
 
 extern crate ordered_float;
+pub use ordered_float::OrderedFloat;
+
 #[cfg(feature = "serde_support")]
 extern crate serde;
 #[macro_use]
