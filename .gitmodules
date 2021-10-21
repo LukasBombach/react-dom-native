@@ -1,0 +1,4 @@
+[submodule "yoga/src/yoga"]
+	path = yoga/src/yoga
+	url = https://github.com/facebook/yoga.git
+	checkout = 1.10.0
