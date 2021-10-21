@@ -1,0 +1,21 @@
+[package]
+name = "yoga"
+description = "Rust bindings for Facebook's Yoga, a Flexbox layout engine"
+license = "MIT"
+repository = "https://github.com/bschwind/yoga-rs"
+version = "0.3.1"
+authors = ["Brian Schwind <brianmschwind@gmail.com>"]
+build = "build.rs"
+
+[features]
+default = []
+serde_support = ["serde", "serde_derive", "ordered-float/serde"]
+
+[build-dependencies]
+bindgen = "0.59.0"
+cc = "1.0.17"
+
+[dependencies]
+ordered-float = "1.0.1"
+serde = { version = "1.0.27", optional = true }
+serde_derive = { version = "1.0.27", optional = true }
